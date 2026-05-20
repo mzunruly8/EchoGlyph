@@ -814,17 +814,53 @@ function resolveMatch(){
     updateDailyProgress('loops',1);
     setTimeout(spawnTarget,400);
   } else {
-    consecutiveLoops=0;loopCounterEl.innerText='';
-    toClear=[...path];
-    score+=path.length*15;
-    playClear(path.length);
-    path.forEach(p=>{
-      if(!board[p.r][p.c])return;
-      const{x,y}=getTileCenter(p.r,p.c);
-      spawnParticles(x,y,board[p.r][p.c].target?'#ffffff':colorToHex(board[p.r][p.c].color),4);
-    });
-  }
+    consecutiveLoops = 0;
+    loopCounterEl.innerText = '';
+    toClear = [...path];
 
+    let chainScore = 0;
+    let multiplier = 1;
+    let wildHits = 0;
+
+    path.forEach(p => {
+      const cell = board[p.r][p.c];
+      if(!cell) return;
+
+      const {x,y} = getTileCenter(p.r,p.c);
+
+      // TARGET / WILD BOOST
+      if(cell.target){
+        multiplier++;
+        wildHits++;
+
+        spawnParticles(x,y,'#ffffff',8);
+        playCombo(multiplier);
+      } else {
+        spawnParticles(x,y,colorToHex(cell.color),4);
+      }
+
+      // ESCALATING SCORE
+      chainScore += 15 * multiplier;
+    });
+
+    score += chainScore;
+
+    // COMBO TEXT
+    if(wildHits >= 2){
+      comboEl.innerText = `WILD SURGE ${multiplier}X`;
+    } else if(wildHits >= 1){
+      comboEl.innerText = `${multiplier}X CHAIN`;
+    } else {
+      comboEl.innerText = `${path.length} LINK`;
+    }
+
+    comboEl.style.transform = 'scale(1.15)';
+    setTimeout(()=>{
+      comboEl.style.transform = 'scale(1)';
+    },120);
+
+    playClear(path.length);
+}
   // Charge characters
   const colorCount={};
   path.forEach(p=>{if(board[p.r][p.c]&&!board[p.r][p.c].target){const col=board[p.r][p.c].color;colorCount[col]=(colorCount[col]||0)+1;}});
